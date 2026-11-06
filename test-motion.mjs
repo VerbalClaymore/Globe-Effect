@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {unit,arc,ease,spring,phase,TIMING} from './motion.mjs';
+const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
+test('geographic vectors are unit length including poles and dateline',()=>{for(const p of [[0,0],[90,180],[-90,-180],[51.51,-.13]])close(Math.hypot(...unit(...p)),1);});
+test('raised arc begins and ends at its cities',()=>{const a=unit(51.51,-.13),b=unit(-37.81,144.96);arc(a,b,0).forEach((x,i)=>close(x,a[i]*1.006));arc(a,b,1).forEach((x,i)=>close(x,b[i]*1.006));assert.ok(Math.hypot(...arc(a,b,.5))>1.1);});
+test('antipodal and coincident routes stay finite',()=>{for(const b of [[0,0,-1],[0,0,1]])for(let t=0;t<=1;t+=.01)assert.ok(arc([0,0,1],b,t).every(Number.isFinite));});
+test('flight easing is monotonic and hits endpoints',()=>{close(ease(0),0);close(ease(1),1);let last=0;for(let i=0;i<=100;i++){let x=ease(i/100);assert.ok(x>=last);last=x;}});
+test('critical spring converges without overshooting',()=>{const s={x:0,v:0};for(let i=0;i<300;i++){spring(s,1,1/60);assert.ok(s.x<=1);}close(s.x,1);});
+test('reference timing boundaries preserve full flight cycle',()=>{close(TIMING.departure+TIMING.flight+TIMING.arrival+TIMING.fade,TIMING.cycle);assert.equal(phase(2.39),'Departure ripple');assert.equal(phase(2.4),'In flight');assert.equal(phase(3.85),'Arrival ripple');assert.equal(phase(6.3),'Transition');});
